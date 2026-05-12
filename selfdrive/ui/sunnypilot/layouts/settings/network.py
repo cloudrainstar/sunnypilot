@@ -61,11 +61,12 @@ class AdvancedNetworkSettingsSP(AdvancedNetworkSettings):
     tethering_active = self._wifi_manager.is_tethering_active()
     show_cell_settings = ui_state.prime_state.get_type() in (PrimeType.NONE, PrimeType.LITE)
     nat_eligible = tethering_active and show_cell_settings
+    wifi_compat_eligible = tethering_active
 
     self._share_internet_toggle.set_visible(nat_eligible)
     self._share_internet_toggle.action_item.set_enabled(nat_eligible)
-    self._wifi_compat_toggle.set_visible(nat_eligible)
-    self._wifi_compat_toggle.action_item.set_enabled(nat_eligible)
+    self._wifi_compat_toggle.set_visible(wifi_compat_eligible)
+    self._wifi_compat_toggle.action_item.set_enabled(wifi_compat_eligible)
     self._wifi_compat_toggle.action_item.set_state(self._wifi_compat_state)
 
     if not sync_state:
@@ -73,6 +74,7 @@ class AdvancedNetworkSettingsSP(AdvancedNetworkSettings):
         self._wifi_manager.set_tethering_internet_shared(False)
       if not nat_eligible:
         self._share_internet_state = False
+      if not wifi_compat_eligible:
         self._wifi_compat_state = False
       self._share_internet_toggle.action_item.set_state(self._share_internet_state)
       self._wifi_compat_toggle.action_item.set_state(self._wifi_compat_state)
@@ -86,6 +88,7 @@ class AdvancedNetworkSettingsSP(AdvancedNetworkSettings):
       if self._can_cleanup_stale_nat and self._wifi_manager.is_tethering_internet_shared():
         self._wifi_manager.set_tethering_internet_shared(False)
       self._share_internet_state = False
+    if not wifi_compat_eligible:
       self._wifi_compat_state = False
     self._share_internet_toggle.action_item.set_state(self._share_internet_state)
     self._wifi_compat_toggle.action_item.set_state(self._wifi_compat_state)
