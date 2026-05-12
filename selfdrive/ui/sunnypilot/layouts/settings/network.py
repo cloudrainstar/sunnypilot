@@ -22,6 +22,7 @@ class AdvancedNetworkSettingsSP(AdvancedNetworkSettings):
   def __init__(self, wifi_manager: WifiManagerSP):
     super().__init__(wifi_manager)
     self._share_internet_state = False
+    self._wifi_compat_state = False
     self._last_share_internet_sync = 0.0
     self._can_cleanup_stale_nat = False
     self._share_internet_toggle = toggle_item_sp(
@@ -33,6 +34,15 @@ class AdvancedNetworkSettingsSP(AdvancedNetworkSettings):
     )
     self._share_internet_toggle.set_touch_valid_callback(self._scroller.scroll_panel.is_touch_valid)
     self._scroller._items.insert(1, self._share_internet_toggle)
+    self._wifi_compat_toggle = toggle_item_sp(
+      tr("Override Wifi Compat"),
+      tr("Forces hotspot security to plain WPA-PSK with PMF disabled for devices that fail to connect."),
+      initial_state=self._wifi_compat_state,
+      callback=self._toggle_tethering_wifi_compat,
+      enabled=False,
+    )
+    self._wifi_compat_toggle.set_touch_valid_callback(self._scroller.scroll_panel.is_touch_valid)
+    self._scroller._items.insert(2, self._wifi_compat_toggle)
     self._sync_share_internet_toggle()
 
   def _on_network_updated(self, networks):
@@ -54,13 +64,18 @@ class AdvancedNetworkSettingsSP(AdvancedNetworkSettings):
 
     self._share_internet_toggle.set_visible(nat_eligible)
     self._share_internet_toggle.action_item.set_enabled(nat_eligible)
+    self._wifi_compat_toggle.set_visible(nat_eligible)
+    self._wifi_compat_toggle.action_item.set_enabled(nat_eligible)
+    self._wifi_compat_toggle.action_item.set_state(self._wifi_compat_state)
 
     if not sync_state:
       if not nat_eligible and self._share_internet_state:
         self._wifi_manager.set_tethering_internet_shared(False)
       if not nat_eligible:
         self._share_internet_state = False
+        self._wifi_compat_state = False
       self._share_internet_toggle.action_item.set_state(self._share_internet_state)
+      self._wifi_compat_toggle.action_item.set_state(self._wifi_compat_state)
       return
 
     self._last_share_internet_sync = time.monotonic()
@@ -71,10 +86,17 @@ class AdvancedNetworkSettingsSP(AdvancedNetworkSettings):
       if self._can_cleanup_stale_nat and self._wifi_manager.is_tethering_internet_shared():
         self._wifi_manager.set_tethering_internet_shared(False)
       self._share_internet_state = False
+      self._wifi_compat_state = False
     self._share_internet_toggle.action_item.set_state(self._share_internet_state)
+    self._wifi_compat_toggle.action_item.set_state(self._wifi_compat_state)
 
   def _toggle_tethering_internet_sharing(self, enabled: bool):
     self._wifi_manager.set_tethering_internet_shared(enabled)
+    self._sync_share_internet_toggle(sync_state=True)
+
+  def _toggle_tethering_wifi_compat(self, enabled: bool):
+    self._wifi_compat_state = enabled
+    self._wifi_manager.set_tethering_wifi_compat_enabled(enabled)
     self._sync_share_internet_toggle(sync_state=True)
 
 
