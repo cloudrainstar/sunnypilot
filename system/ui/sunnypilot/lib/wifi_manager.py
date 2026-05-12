@@ -47,8 +47,9 @@ class WifiManagerSP(WifiManager):
     self._set_tethering_nat_rule(shared and self._ipv4_forward)
 
   def set_tethering_wifi_compat_enabled(self, enabled: bool) -> None:
-    if enabled and self.is_tethering_active():
-      threading.Thread(target=self._set_tethering_ap_compatibility, daemon=True).start()
+    if self.is_tethering_active():
+      target = self._set_tethering_ap_compatibility if enabled else self._reset_tethering_ap_compatibility
+      threading.Thread(target=target, daemon=True).start()
 
   def _get_tethering_network_id(self) -> str | None:
     result = subprocess.run(
@@ -83,6 +84,9 @@ class WifiManagerSP(WifiManager):
       subprocess.run(command, check=False)
     time.sleep(2)
     subprocess.run(["wpa_cli", "-i", TETHERING_WIFI_IFACE, "enable_network", network_id], check=False)
+
+  def _reset_tethering_ap_compatibility(self) -> None:
+    self.activate_connection(self._tethering_ssid, block=True)
 
   def set_tethering_active(self, active: bool):
     super().set_tethering_active(active)
